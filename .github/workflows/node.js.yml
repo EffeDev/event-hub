@@ -2,7 +2,9 @@ name: Stage Build
 
 on:
   push:
-    branches: [ "*" ]
+    branches:
+      - main
+      - "feature/*"
 
 jobs:
   build:
