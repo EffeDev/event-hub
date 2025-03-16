@@ -9,11 +9,16 @@
   "type": "module",
   "scripts": {
     "prebuild": "rimraf dist/* && npm run lint",
-    "build": "npx rollup -c",
-    "test": "npx jest",
-    "lint": "npx eslint --fix",
+    "build": "rollup -c",
+    "test": "jest",
+    "lint": "eslint",
+    "test:ci": "jest --ci",
+    "lint:fix": "eslint --fix",
     "postversion": "npm run build",
     "release": "semantic-release"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "repository": {
     "type": "git",
@@ -40,7 +45,7 @@
     "@types/ws": "^8.5.13",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
-    "eslint": "^9.14.0",
+    "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
