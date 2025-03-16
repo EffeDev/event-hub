@@ -1,4 +1,13 @@
+
+
 # EventHub For Front Ends (Effe)
+
+<div align="center">
+
+[![Pipeline](https://github.com/serverless-dna/effe/actions/workflows/pipeline.yml/badge.svg)](https://github.com/serverless-dna/effe/actions/workflows/pipeline.yml)
+
+</div>
+
 
 Effe (pr. e-ff-y) connects your frontend javascript applications to your backend Event Driven Architecture (EDA).
 Effe is a framework-agnostic event hub providing a familiar event bus interface for your front-end components combined 
