@@ -106,7 +106,7 @@ describe('[EventHub]: Group unsubscribe', () => {
     eventHub = new EventHub();
   });
 
-  it('Should unsubscribe all callbacks from a channel', () => {
+  it('Should unsubscribe all callbacks from all channels in a group', () => {
     let eventData1: string = '';
     let eventData2: string = '';
     const sub1 = eventHub.subscribe<string>('tester', (data:string) => {
@@ -124,10 +124,45 @@ describe('[EventHub]: Group unsubscribe', () => {
     expect(sub1).toHaveProperty('unsubscribe');
     expect(sub2).toHaveProperty('unsubscribe');
 
-    const callbackCount = eventHub.callbackCount('tester');
     eventHub.unsubscribeGroup('test-group');
-    expect(eventHub.callbackCount('tester')).toBe(0);
-    expect(eventHub.callbackCount('tester-2')).toBe(0);
+    
+    // Reset test data
+    eventData1 = '';
+    eventData2 = '';
+    
+    // Publish again to verify callbacks are unsubscribed
+    eventHub.publish<string>('tester', 'after unsubscribe');
+    eventHub.publish<string>('tester-2', 'after unsubscribe');
+    expect(eventData1).toBe('');
+    expect(eventData2).toBe('');
+  });
+
+  it('Should handle unsubscribe for non-existent group', () => {
+    // Should not throw any errors
+    eventHub.unsubscribeGroup('non-existent-group');
+  });
+
+  it('Should not affect other groups when unsubscribing one group', () => {
+    let data1 = '', data2 = '';
+    eventHub.subscribe<string>('channel1', (data) => { data1 = data; }, { group: 'group1' });
+    eventHub.subscribe<string>('channel1', (data) => { data2 = data; }, { group: 'group2' });
+
+    eventHub.unsubscribeGroup('group1');
+    eventHub.publish<string>('channel1', 'test');
+
+    expect(data1).toBe(''); // group1 was unsubscribed
+    expect(data2).toBe('test'); // group2 should still receive events
+  });
+
+  it('Should handle replay option with group subscriptions', () => {
+    eventHub.publish<string>('test-channel', 'initial');
+
+    let data1 = '', data2 = '';
+    eventHub.subscribe<string>('test-channel', (data) => { data1 = data; }, { group: 'group1', replay: true });
+    eventHub.subscribe<string>('test-channel', (data) => { data2 = data; }, { group: 'group1', replay: true });
+
+    expect(data1).toBe('initial');
+    expect(data2).toBe('initial');
   });
 });
 
@@ -187,3 +222,4 @@ describe('[EventHub]: publish', () => {
     expect(eventHub.channelCount).toBe(2);
   });
 });
+
