@@ -90,12 +90,15 @@ export class Channel<TData> implements IChannel<TData> {
         }
         const id = this.getNextId();
            
-        const wrappedCallback: EventCallback<TData> = (message) => {
+        // Simplify the wrapped callback - don't reject promises
+        const wrappedCallback: EventCallback<TData> = async (message) => {
             try {
-                callback(message);
+                return await callback(message);
             } catch (error) {
-                console.error(`Error processing callback [${id}]`, error);
+                console.error(`Error in channel ${this.name} callback:`, error);
                 this._metrics.errorCount++;
+                // Return undefined instead of rejecting
+                return undefined;
             }
         };
 
@@ -139,14 +142,16 @@ export class Channel<TData> implements IChannel<TData> {
      *
      * @param {TData} data - The event data to be published to all subscribers.
      */
-    publish(data: TData): void {
+    async publish(data: TData): Promise<void> {
         this._metrics.publishCount++;
         this._metrics.lastPublishTime = Date.now();
-
         this._lastEvent = data;
-        this._callbacks.forEach((callback) => {
-          callback(data);
-        });
+        
+        const callbacks = Array.from(this._callbacks.values());
+        
+        // Execute all callbacks in parallel and don't worry about errors
+        // since they're already handled in the wrapped callbacks
+        await Promise.allSettled(callbacks.map(callback => callback(data)));
     }
   
     /**
@@ -166,6 +171,7 @@ export class Channel<TData> implements IChannel<TData> {
     get name(): string {
       return this._name;
     }
+
   
     /**
      * Retrieves the list of callbacks that are subscribed to the channel.
@@ -185,6 +191,10 @@ export class Channel<TData> implements IChannel<TData> {
         return this._metrics;
     }
   }
+
+
+
+
 
 
 
