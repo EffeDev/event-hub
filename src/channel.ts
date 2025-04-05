@@ -1,5 +1,5 @@
 
-import { CallbackId, CallbackList, ChannelId, ChannelMetrics, EventCallback, IChannel, SubscribeOptions, Subscription } from "./types";
+import { CallbackList, ChannelMetrics, EventCallback, IChannel, SubscribeOptions, Subscription } from "./types";
 
 /**
  * Manages callback subscribers for a channel.
