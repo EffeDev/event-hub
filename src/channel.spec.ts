@@ -1,6 +1,6 @@
 import { Channel } from "./index";
 
-describe('[Channel] ', () => {
+describe('[Channel] Basic Operations', () => {
   let channel: Channel<boolean>;
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('[Channel] ', () => {
   });
 });
 
-describe('[Channel]', () => {
+describe('[Channel] Subscription Management', () => {
   let channel: Channel<boolean>;
   let eventData: boolean;
   let subscription: any;
@@ -59,6 +59,90 @@ describe('[Channel]', () => {
       eventData = data;
     }, { replay: true });
     expect(eventData).toBeTruthy();
+  });
+});
+
+describe('[Channel] Group Subscription Management', () => {
+  let channel: Channel<string>;
+  let receivedMessages: string[];
+
+  beforeEach(() => {
+    channel = new Channel<string>('test');
+    receivedMessages = [];
+  });
+
+  it('Should add subscribers to the same group', () => {
+    const callback1 = (msg: string) => receivedMessages.push(`cb1: ${msg}`);
+    const callback2 = (msg: string) => receivedMessages.push(`cb2: ${msg}`);
+
+    channel.subscribe(callback1, { group: 'testGroup' });
+    channel.subscribe(callback2, { group: 'testGroup' });
+
+    channel.publish('hello');
+    expect(receivedMessages).toEqual(['cb1: hello', 'cb2: hello']);
+  });
+
+  it('Should unsubscribe all callbacks in a group', () => {
+    const callback1 = jest.fn();
+    const callback2 = jest.fn();
+    const callback3 = jest.fn();
+
+    channel.subscribe(callback1, { group: 'group1' });
+    channel.subscribe(callback2, { group: 'group1' });
+    channel.subscribe(callback3, { group: 'group2' });
+
+    channel.unsubscribeGroup('group1');
+
+    channel.publish('test');
+    expect(callback1).not.toHaveBeenCalled();
+    expect(callback2).not.toHaveBeenCalled();
+    expect(callback3).toHaveBeenCalledWith('test');
+  });
+
+  it('Should handle unsubscribe for non-existent group', () => {
+    channel.unsubscribeGroup('nonexistent');
+    // Should not throw any errors
+    expect(channel.callbacks.size).toBe(0);
+  });
+
+  it('Should remove callback from group when unsubscribed individually', () => {
+    const callback = jest.fn();
+    const subscription = channel.subscribe(callback, { group: 'testGroup' });
+    
+    subscription.unsubscribe();
+    channel.publish('test');
+    
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('Should handle multiple groups for the same channel', () => {
+    const callback1 = jest.fn();
+    const callback2 = jest.fn();
+    const callback3 = jest.fn();
+
+    channel.subscribe(callback1, { group: 'group1' });
+    channel.subscribe(callback2, { group: 'group2' });
+    channel.subscribe(callback3, { group: 'group1' });
+
+    channel.unsubscribeGroup('group1');
+    channel.publish('test');
+
+    expect(callback1).not.toHaveBeenCalled();
+    expect(callback2).toHaveBeenCalledWith('test');
+    expect(callback3).not.toHaveBeenCalled();
+  });
+
+  it('Should handle replay option with group subscriptions', () => {
+    const callback1 = jest.fn();
+    const callback2 = jest.fn();
+
+    channel.publish('initial');
+    
+    channel.subscribe(callback1, { group: 'group1', replay: true });
+    channel.subscribe(callback2, { group: 'group1', replay: true });
+
+    expect(callback1).toHaveBeenCalledWith('initial');
+    expect(callback2).toHaveBeenCalledWith('initial');
   });
 });
 
@@ -125,7 +209,7 @@ describe('[Channel] Error Handling', () => {
     expect(() => {
       channel.subscribe('not a function' as any);
     }).toThrow('Callback must be a function');
-  })
+  });
 });
 
 describe('[Channel] Metrics', () => {

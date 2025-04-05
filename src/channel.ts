@@ -1,10 +1,11 @@
 
-import { CallbackId, CallbackList, ChannelId, ChannelMetrics, EventCallback, SubscribeOptions, Subscription } from "./types";
+import { CallbackId, CallbackList, ChannelId, ChannelMetrics, EventCallback, IChannel, SubscribeOptions, Subscription } from "./types";
 
 /**
  * Manages callback subscribers for a channel.
  *
  * @class Channel
+ * @implements {IChannel<TData>}
  * @template TData The type of event data that this channel handles
  * @property {string} _name - The name of the channel
  * @property {TData | undefined} _lastEvent - The last event that was published on the channel
@@ -22,11 +23,12 @@ import { CallbackId, CallbackList, ChannelId, ChannelMetrics, EventCallback, Sub
  * channel.publish('Hello, World!');
  * // Output: Hello, World!
  */
-export class Channel<TData> {
+export class Channel<TData> implements IChannel<TData> {
     private readonly _name: string;
     private _lastEvent: TData|undefined;
     private _lastId = 0;
     private _callbacks: CallbackList<TData> = new Map();
+    private _groups: Map<string, Set<Subscription>> = new Map();
     private _metrics: ChannelMetrics = {
         publishCount: 0,
         errorCount: 0,
@@ -51,13 +53,36 @@ export class Channel<TData> {
     private getNextId(): number {
         return ++this._lastId;
     }
+
+
   
+    private addToGroup(group: string, subscription: Subscription): void {
+        if (!this._groups.has(group)) {
+            this._groups.set(group, new Set());
+        }
+        this._groups.get(group)!.add(subscription);
+    }
+
+    /**
+     * Unsubscribes all callbacks in a specific group
+     * 
+     * @param group The name of the group to unsubscribe
+     */
+    unsubscribeGroup(group: string): void {
+        const subscriptions = this._groups.get(group);
+        if (subscriptions) {
+            subscriptions.forEach(sub => sub.unsubscribe());
+            this._groups.delete(group);
+        }
+    }
+
     /**
      * Subscribes to events on the channel. Each event received will be passed to the callback function.
      *
      * @param {EventCallback<TData>} callback - The function to be called when an event is published on this channel.
-     * @param {boolean} [replay=false] - If true, immediately calls the callback with the last event, if one exists.
+     * @param {SubscribeOptions} [options] - Optional settings for the subscription including replay and group.
      * @returns {Subscription} An object containing the unsubscribe method and the subscription ID.
+     * @throws {TypeError} If the callback is not a function
      */
     subscribe(callback: EventCallback<TData>, options?: SubscribeOptions): Subscription {
         if (!callback || typeof callback !== 'function') {
@@ -77,29 +102,48 @@ export class Channel<TData> {
         const lastEvent = this._lastEvent;
         this._callbacks.set(id, wrappedCallback);
   
-        // replay the last event
-        if(options?.replay && lastEvent) {
-            wrappedCallback(lastEvent);
-        }
-  
-        return {
+        const subscription = {
             unsubscribe: () => {
                 this._callbacks.delete(id);
+                // Remove from group if part of one
+                if (options?.group) {
+                    const groupSubs = this._groups.get(options.group);
+                    if (groupSubs) {
+                        groupSubs.delete(subscription);
+                        if (groupSubs.size === 0) {
+                            this._groups.delete(options.group);
+                        }
+                    }
+                }
             },
             id,
         };
+
+        // Add to group if specified
+        if (options?.group) {
+            this.addToGroup(options.group, subscription);
+        }
+
+        // replay the last event
+        if(options?.replay && lastEvent !== undefined) {
+            wrappedCallback(lastEvent);
+        }
+  
+        return subscription;
     }
+
+
   
     /**
      * Publishes an event to the channel, notifying all subscribers.
      *
      * @param {TData} data - The event data to be published to all subscribers.
      */
-    publish(data: TData) {
+    publish(data: TData): void {
         this._metrics.publishCount++;
         this._metrics.lastPublishTime = Date.now();
 
-        this._lastEvent = data ;
+        this._lastEvent = data;
         this._callbacks.forEach((callback) => {
           callback(data);
         });
@@ -141,3 +185,11 @@ export class Channel<TData> {
         return this._metrics;
     }
   }
+
+
+
+
+
+
+
+

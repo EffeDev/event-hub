@@ -75,6 +75,46 @@ export type CallbackId = number;
 export type CallbackList<TData> = Map<CallbackId, EventCallback<TData>>;
 
 /**
+ * Interface defining the contract for a Channel implementation.
+ * 
+ * @template TData The type of data that this channel handles
+ */
+export interface IChannel<TData> {
+    /**
+     * Subscribes to events on the channel
+     * @param callback The function to be called when an event is published
+     * @param options Subscription options including replay and group
+     */
+    subscribe(callback: EventCallback<TData>, options?: SubscribeOptions): Subscription;
+
+    /**
+     * Publishes an event to all subscribers
+     * @param data The event data to publish
+     */
+    publish(data: TData): void;
+
+    /**
+     * Gets the last event published on this channel
+     */
+    readonly lastEvent: TData | undefined;
+
+    /**
+     * Gets the name of the channel
+     */
+    readonly name: string;
+
+    /**
+     * Gets the list of callbacks subscribed to this channel
+     */
+    readonly callbacks: CallbackList<TData>;
+
+    /**
+     * Gets the metrics for this channel
+     */
+    readonly metrics: ChannelMetrics;
+}
+
+/**
  * Subscribe Options for Channel Subscription
  * 
  * @property {boolean} [replay=false] - If true, immediately calls the callback with the last event, if one exists.
