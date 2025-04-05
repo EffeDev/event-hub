@@ -40,12 +40,6 @@ export class EventHub {
    * @private
    */
   private channels: Map<string, Channel<any>> = new Map();
-  /**
-   * Holds the list of groups created by group option of the subscribe method of the EventHub
-   *
-   * @private
-   */
-  private groups: Map<string, Set<Subscription>> = new Map();
 
   /**
    * Creates a new EventHub instance.
@@ -73,13 +67,6 @@ export class EventHub {
     return this.channels.get(channel) as Channel<TData>;
   }
 
-  private addToGroup(group: string, subscription: Subscription): void {
-    if (!this.groups.has(group)) {
-        this.groups.set(group, new Set());
-    }
-    this.groups.get(group)!.add(subscription);
-  }
-
   /**
    * Get the Channel Count for the EventHub
    * 
@@ -103,11 +90,10 @@ export class EventHub {
    * @param group 
    */
   unsubscribeGroup(group: string): void {
-    const subscriptions = this.groups.get(group);
-    if (subscriptions) {
-        subscriptions.forEach(sub => sub.unsubscribe());
-        this.groups.delete(group);
-    }
+    // Unsubscribe group from all channels that might have it
+    this.channels.forEach(channel => {
+      channel.unsubscribeGroup(group);
+    });
   }
 
   /**
@@ -116,18 +102,12 @@ export class EventHub {
    * @template TData The type of event that this subscription handles.
    * @param {string} channel - The name of the channel to subscribe to.
    * @param {EventCallback<TData>} callback - The function to be called by the EventHub for each event published on this channel.
-   * @param {boolean} [replay=false] - If true, immediately replays the last event sent on this channel (if any).
+   * @param {SubscribeOptions} [options] - Optional settings for the subscription including replay and group.
    * @returns {Subscription} An object containing the unsubscribe method and the subscription ID.
    */
   subscribe<TData>(channel: string, callback: EventCallback<TData>, options?: SubscribeOptions): Subscription {
     const ch = this.getOrCreateChannel<TData>(channel);
-    const subscription = ch.subscribe(callback, options);
-
-    if (options?.group) {
-        this.addToGroup(options.group, subscription);
-    }
-
-    return subscription;
+    return ch.subscribe(callback, options);
   }
 
   /**
@@ -158,3 +138,4 @@ export class EventHub {
       return this.getOrCreateChannel<TData>(channel).lastEvent;
   }
 }
+
