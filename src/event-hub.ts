@@ -117,13 +117,13 @@ export class EventHub {
    * @param {string} channel - The name of the channel to publish the event to.
    * @param {TData} data - The event data to be sent to each subscriber of the channel.
    */
-  publish<TData>(channel: string, data: TData): void {
+  async publish<TData>(channel: string, data: TData): Promise<void> {
     const ch = this.getOrCreateChannel<TData>(channel);
-    ch.publish(data);
+    await ch.publish(data);
     
     // Also publish to wildcard channel
     if (channel !== WildCardChannel) {
-        this.getOrCreateChannel<any>(WildCardChannel).publish(data);
+        await this.getOrCreateChannel<any>(WildCardChannel).publish(data);
     }
   }
 
@@ -138,4 +138,8 @@ export class EventHub {
       return this.getOrCreateChannel<TData>(channel).lastEvent;
   }
 }
+
+
+
+
 

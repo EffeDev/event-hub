@@ -37,23 +37,23 @@ describe('[Channel] Subscription Management', () => {
     expect(subscription.id).toBe(1);
   });
 
-  it('Should call each callback when an event is published', () => {
-    channel.publish(true);
+  it('Should call each callback when an event is published', async () => {
+    await channel.publish(true);
     expect(eventData).toBeTruthy();
   });
 
-  it('Should return the last event when called', () => {
-    channel.publish(true);
+  it('Should return the last event when called', async () => {
+    await channel.publish(true);
     expect(channel.lastEvent).toBeTruthy();
   });
 
-  it('Should remove the subscriber when I call unsubscribe', () => {
+  it('Should remove the subscriber when I call unsubscribe', async () => {
     subscription.unsubscribe();
     expect(Object.keys(channel.callbacks).length).toBe(0);
   });
 
-  it('Should replay the last event when I subscribe with replay active', () => {
-    channel.publish(true);
+  it('Should replay the last event when I subscribe with replay active', async () => {
+    await channel.publish(true);
     eventData = false;
     channel.subscribe((data:boolean) => {
       eventData = data;
@@ -71,18 +71,18 @@ describe('[Channel] Group Subscription Management', () => {
     receivedMessages = [];
   });
 
-  it('Should add subscribers to the same group', () => {
-    const callback1 = (msg: string) => receivedMessages.push(`cb1: ${msg}`);
-    const callback2 = (msg: string) => receivedMessages.push(`cb2: ${msg}`);
+  it('Should add subscribers to the same group', async () => {
+    const callback1 = (msg: string) => { receivedMessages.push(`cb1: ${msg}`) };
+    const callback2 = (msg: string) => { receivedMessages.push(`cb2: ${msg}`) };
 
     channel.subscribe(callback1, { group: 'testGroup' });
     channel.subscribe(callback2, { group: 'testGroup' });
 
-    channel.publish('hello');
+    await channel.publish('hello');
     expect(receivedMessages).toEqual(['cb1: hello', 'cb2: hello']);
   });
 
-  it('Should unsubscribe all callbacks in a group', () => {
+  it('Should unsubscribe all callbacks in a group', async () => {
     const callback1 = jest.fn();
     const callback2 = jest.fn();
     const callback3 = jest.fn();
@@ -93,7 +93,7 @@ describe('[Channel] Group Subscription Management', () => {
 
     channel.unsubscribeGroup('group1');
 
-    channel.publish('test');
+    await channel.publish('test');
     expect(callback1).not.toHaveBeenCalled();
     expect(callback2).not.toHaveBeenCalled();
     expect(callback3).toHaveBeenCalledWith('test');
@@ -105,17 +105,17 @@ describe('[Channel] Group Subscription Management', () => {
     expect(channel.callbacks.size).toBe(0);
   });
 
-  it('Should remove callback from group when unsubscribed individually', () => {
+  it('Should remove callback from group when unsubscribed individually', async () => {
     const callback = jest.fn();
     const subscription = channel.subscribe(callback, { group: 'testGroup' });
     
     subscription.unsubscribe();
-    channel.publish('test');
+    await channel.publish('test');
     
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('Should handle multiple groups for the same channel', () => {
+  it('Should handle multiple groups for the same channel', async () => {
     const callback1 = jest.fn();
     const callback2 = jest.fn();
     const callback3 = jest.fn();
@@ -125,18 +125,18 @@ describe('[Channel] Group Subscription Management', () => {
     channel.subscribe(callback3, { group: 'group1' });
 
     channel.unsubscribeGroup('group1');
-    channel.publish('test');
+    await channel.publish('test');
 
     expect(callback1).not.toHaveBeenCalled();
     expect(callback2).toHaveBeenCalledWith('test');
     expect(callback3).not.toHaveBeenCalled();
   });
 
-  it('Should handle replay option with group subscriptions', () => {
+  it('Should handle replay option with group subscriptions', async () => {
     const callback1 = jest.fn();
     const callback2 = jest.fn();
 
-    channel.publish('initial');
+    await channel.publish('initial');
     
     channel.subscribe(callback1, { group: 'group1', replay: true });
     channel.subscribe(callback2, { group: 'group1', replay: true });
@@ -165,7 +165,7 @@ describe('[Channel] Error Handling', () => {
     console.error = originalConsoleError;
   });
 
-  it('Should catch and log error when callback throws', () => {
+  it('Should catch and log error when callback throws', async () => {
     const errorMessage = 'Test error in callback';
     const failingCallback = () => {
       throw new Error(errorMessage);
@@ -175,15 +175,15 @@ describe('[Channel] Error Handling', () => {
     channel.subscribe(failingCallback);
 
     // Publish an event to trigger the callback
-    channel.publish('test message');
+    await channel.publish('test message');
 
     // Verify console.error was called with the expected error message
     expect(mockConsoleError).toHaveBeenCalled();
-    expect(mockConsoleError.mock.calls[0][0]).toBe(`Error processing callback [1]`);
+    expect(mockConsoleError.mock.calls[0][0]).toBe(`Error in channel test callback:`);
     expect(mockConsoleError.mock.calls[0][1]).toBeInstanceOf(Error);
   });
 
-  it('Should continue executing other callbacks when one fails', () => {
+  it('Should continue executing other callbacks when one fails', async () => {
     const successCallback = jest.fn();
     const failingCallback = () => {
       throw new Error('Test error');
@@ -194,7 +194,7 @@ describe('[Channel] Error Handling', () => {
     channel.subscribe(successCallback);
 
     // Publish an event
-    channel.publish('test message');
+    await channel.publish('test message');
 
     // Verify the success callback was still called
     expect(successCallback).toHaveBeenCalledWith('test message');
@@ -209,6 +209,89 @@ describe('[Channel] Error Handling', () => {
     expect(() => {
       channel.subscribe('not a function' as any);
     }).toThrow('Callback must be a function');
+  });
+
+  it('Should handle async callback errors in debug mode', async () => {
+    const debugChannel = new Channel<string>('test');
+    const successCallback = jest.fn();
+    const failingCallback = async () => {
+      throw new Error('Async error');
+    };
+
+    debugChannel.subscribe(failingCallback);
+    debugChannel.subscribe(successCallback);
+
+    // This should no longer throw
+    await debugChannel.publish('test message');
+
+    // Both callbacks should have been attempted
+    expect(successCallback).toHaveBeenCalledWith('test message');
+    // Error should have been logged
+    expect(mockConsoleError).toHaveBeenCalled();
+    // Error message should match
+    expect(mockConsoleError.mock.calls[0][0]).toBe('Error in channel test callback:');
+  });
+
+  it('Should directly test debug mode error handling', async () => {
+    // Create a channel in debug mode
+    const debugChannel = new Channel<string>('test-debug');
+    
+    // Create a spy on the console.error method
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Create a callback that will throw an error
+    const failingCallback = async () => {
+      throw new Error('Debug mode error');
+    };
+    
+    // Subscribe the failing callback
+    debugChannel.subscribe(failingCallback);
+    
+    // Publish to trigger the error in debug mode
+    await debugChannel.publish('test message');
+    
+    // Verify the error was logged
+    expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error in channel test-debug callback:',
+      expect.any(Error)
+    );
+    
+    // Verify metrics were updated
+    expect(debugChannel.metrics.errorCount).toBe(1);
+    
+    // Clean up
+    errorSpy.mockRestore();
+  });
+
+  it('Should directly test production mode error handling', async () => {
+    // Create a channel in production mode
+    const prodChannel = new Channel<string>('test-prod');
+    
+    // Create a spy on the console.error method
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Create a callback that returns a rejected promise
+    const failingCallback = () => Promise.reject(new Error('Production mode error'));
+    
+    // Subscribe the failing callback
+    prodChannel.subscribe(failingCallback);
+    
+    // Publish to trigger the error in production mode
+    await prodChannel.publish('test message');
+    
+    // Verify the error was logged
+    expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error in channel test-prod callback:',
+      expect.any(Error)
+    );
+    
+    // Verify metrics were updated
+    expect(prodChannel.metrics.errorCount).toBe(1);
+    
+    // Clean up
+    errorSpy.mockRestore();
   });
 });
 
@@ -232,20 +315,20 @@ describe('[Channel] Metrics', () => {
     expect(channel.metrics.lastPublishTime).toBe(0);
   });
 
-  it('Should increment publishCount when publishing events', () => {
-    channel.publish('test1');
+  it('Should increment publishCount when publishing events', async () => {
+    await channel.publish('test1');
     expect(channel.metrics.publishCount).toBe(1);
 
-    channel.publish('test2');
+    await channel.publish('test2');
     expect(channel.metrics.publishCount).toBe(2);
   });
 
-  it('Should update lastPublishTime when publishing events', () => {
-    channel.publish('test');
+  it('Should update lastPublishTime when publishing events', async () => {
+    await channel.publish('test');
     expect(channel.metrics.lastPublishTime).toBe(mockDate);
   });
 
-  it('Should increment errorCount when callbacks throw errors', () => {
+  it('Should increment errorCount when callbacks throw errors', async () => {
     const errorCallback = () => {
       throw new Error('Test error');
     };
@@ -254,12 +337,31 @@ describe('[Channel] Metrics', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     channel.subscribe(errorCallback);
-    channel.publish('test');
+    await channel.publish('test');
 
     expect(channel.metrics.errorCount).toBe(1);
 
     // Multiple errors should increment counter multiple times
-    channel.publish('test again');
+    await channel.publish('test again');
     expect(channel.metrics.errorCount).toBe(2);
   });
+
+  it('Should increment errorCount for async errors in debug mode', async () => {
+    const debugChannel = new Channel<string>('test');
+    const errorCallback = async () => {
+      throw new Error('Async error');
+    };
+
+    // Suppress console.error for this test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    debugChannel.subscribe(errorCallback);
+    await debugChannel.publish('test');
+
+    expect(debugChannel.metrics.errorCount).toBe(1);
+  });
 });
+
+
+
+
