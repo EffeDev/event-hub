@@ -12,7 +12,7 @@
  *   console.log(`Received message on channel ${message.channel}: ${message.data}`);
  * };
  */
-export type EventCallback<TData> = (data:TData) => void;
+export type EventCallback<TData> = (data:TData) => void | Promise<void>;
 
 /**
  * Constant representing the wild card channel where ALL events get broadcast to.
@@ -91,7 +91,7 @@ export interface IChannel<TData> {
      * Publishes an event to all subscribers
      * @param data The event data to publish
      */
-    publish(data: TData): void;
+    publish(data: TData): Promise<void>;
 
     /**
      * Gets the last event published on this channel
@@ -130,3 +130,5 @@ export  interface SubscribeOptions {
     replay?: boolean;
     group?: string;
 }
+
+
