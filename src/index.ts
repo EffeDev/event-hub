@@ -1,5 +1,15 @@
 import { Channel } from './channel';
 import { EventHub } from './event-hub';
+import { Pipeline } from './pipeline';
+import { BaseTransport, ITransport } from './transport';
 import { EventCallback, Subscription } from './types';
 
-export { Channel, EventCallback, EventHub, Subscription };
+export { 
+    BaseTransport,
+    Channel,
+    EventCallback,
+    EventHub,
+    ITransport,
+    Pipeline,
+    Subscription,
+};

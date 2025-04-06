@@ -58,12 +58,29 @@ export interface ChannelMetrics {
 }
 
 /**
- * Represents the Id of a Channel
+ * Type representing a unique identifier for a channel in the event system
+ * 
+ * @description
+ * ChannelId is a string that uniquely identifies a channel in the event system.
+ * It is used to route events to the correct subscribers and maintain channel-specific state.
+ * 
+ * @example
+ * const channelId: ChannelId = 'user-events';
+ * const channel = eventHub.subscribe(channelId, callback);
  */
 export type ChannelId = string;
 
 /**
- * Represents the Id of a Callback
+ * Type representing a unique identifier for a callback subscription
+ * 
+ * @description
+ * CallbackId is a numeric identifier assigned to each callback when it is
+ * subscribed to a channel. This ID is used internally to manage subscriptions
+ * and is included in the Subscription object returned when subscribing.
+ * 
+ * @example
+ * const subscription = channel.subscribe(callback);
+ * console.log(subscription.id); // Prints the CallbackId
  */
 export type CallbackId = number;
 
@@ -131,4 +148,12 @@ export  interface SubscribeOptions {
     group?: string;
 }
 
-
+/**
+ * isDefined TypeGuard
+ * 
+ * @param val 
+ * @returns 
+ */
+export function isDefined<T>(val: T | null | undefined): val is T {
+    return val !== null && val !== undefined;
+  }

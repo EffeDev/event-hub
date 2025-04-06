@@ -392,12 +392,12 @@ describe('[EventHub]: Async Callbacks', () => {
       throw new Error('Async error');
     });
     
-    eventHub.subscribe<string>('test', async (_data: string) => {
+    eventHub.subscribe<string>('test', async (data: string) => {
       await new Promise(resolve => setTimeout(resolve, 50));
       successData1 = data;
     });
 
-    eventHub.subscribe<string>('test', async (_data: string) => {
+    eventHub.subscribe<string>('test', async (data: string) => {
       successData2 = data + ' processed';
     });
 
