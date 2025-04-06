@@ -1,64 +1,80 @@
-import { Pipeline } from './index';
-import { IPipelineFilter } from './pipeline';
+import { IPipelineFilter, Pipeline, PipelineResult } from './pipeline';
+
+// Create proper filter classes for testing
+class StringToNumberFilter implements IPipelineFilter<string, number> {
+  async process(data: string): Promise<PipelineResult<number>> {
+    return { success: true, data: parseInt(data) };
+  }
+}
+
+class NumberToHexFilter implements IPipelineFilter<number, string> {
+  async process(data: number): Promise<PipelineResult<string>> {
+    return { success: true, data: data.toString(16) };
+  }
+}
+
+class NumberDoubleFilter implements IPipelineFilter<number, number> {
+  async process(data: number): Promise<PipelineResult<number>> {
+    return { success: true, data: data * 2 };
+  }
+}
+
+class InvalidNumberFilter implements IPipelineFilter<string, number> {
+  async process(data: string): Promise<PipelineResult<number>> {
+    if (isNaN(parseInt(data))) {
+      return { success: false, error: new Error('Invalid number') };
+    }
+    return { success: true, data: parseInt(data) };
+  }
+}
+
+class ErrorThrowingFilter implements IPipelineFilter<string, number> {
+  async process(_data: string): Promise<PipelineResult<number>> {
+    throw new Error('Unexpected error');
+  }
+}
+
+class NullReturningFilter implements IPipelineFilter<string, number> {
+  async process(_data: string): Promise<PipelineResult<number>> {
+    return { success: true, data: undefined };
+  }
+}
 
 describe('[Pipeline]: Construction and Filter Addition', () => {
-  let pipeline: Pipeline<string, string>;
-
-  beforeEach(() => {
-    pipeline = new Pipeline<string, string>();
-  });
-
   it('Should create an empty pipeline', () => {
+    const pipeline = new Pipeline<string, string>();
     expect(pipeline).toBeDefined();
+    expect(pipeline.size).toBe(0);
   });
 
   it('Should allow adding a filter', () => {
-    const filter: IPipelineFilter<string, number> = {
-      async process(data: string): Promise<{ success: boolean; data?: number; error?: Error }> {
-        return { success: true, data: parseInt(data) };
-      }
-    };
-
-    const newPipeline = pipeline.add(filter);
+    const filter = new StringToNumberFilter();
+    const pipeline = new Pipeline<string>();
+    const newPipeline = pipeline.add<number>(filter);
+    
     expect(newPipeline).toBeDefined();
     expect(newPipeline.size).toBe(1);
+    // Original pipeline should remain unchanged
+    expect(pipeline.size).toBe(0);
   });
 
   it('Should allow chaining multiple filters', () => {
-    const stringToNumber: IPipelineFilter<string, number> = {
-      async process(data: string) {
-        return { success: true, data: parseInt(data) };
-      }
-    };
+    const stringToNumber = new StringToNumberFilter();
+    const numberToHex = new NumberToHexFilter();
 
-    const numberToHex: IPipelineFilter<number, string> = {
-      async process(data: number) {
-        return { success: true, data: data.toString(16) };
-      }
-    };
-
-    const chainedPipeline = pipeline
-      .add(stringToNumber)
-      .add(numberToHex);
+    const chainedPipeline = new Pipeline<string>()
+      .add<number>(stringToNumber)
+      .add<string>(numberToHex);
 
     expect(chainedPipeline).toBeDefined();
+    expect(chainedPipeline.size).toBe(2);
   });
 });
 
 describe('[Pipeline]: Data Processing', () => {
-  let pipeline: Pipeline<string, number>;
-
-  beforeEach(() => {
-    pipeline = new Pipeline<string, number>();
-  });
-
   it('Should process data through a single filter successfully', async () => {
-    pipeline.add({
-      async process(data: string) {
-        const num = parseInt(data);
-        return { success: true, data: num };
-      }
-    });
+    const pipeline = new Pipeline<string>()
+      .add<number>(new StringToNumberFilter());
 
     const result = await pipeline.process('123');
     expect(result.success).toBe(true);
@@ -66,32 +82,18 @@ describe('[Pipeline]: Data Processing', () => {
   });
 
   it('Should process data through multiple filters successfully', async () => {
-    const finalPipeline = pipeline
-      .add({
-        async process(data: string) {
-          return { success: true, data: parseInt(data) };
-        }
-      })
-      .add({
-        async process(data: number) {
-          return { success: true, data: data * 2 };
-        }
-      });
+    const pipeline = new Pipeline<string>()
+      .add<number>(new StringToNumberFilter())
+      .add<number>(new NumberDoubleFilter());
 
-    const result = await finalPipeline.process('123');
+    const result = await pipeline.process('123');
     expect(result.success).toBe(true);
     expect(result.data).toBe(246);
   });
 
   it('Should handle filter errors gracefully', async () => {
-    pipeline.add({
-      async process(data: string) {
-        if (isNaN(parseInt(data))) {
-          return { success: false, error: new Error('Invalid number') };
-        }
-        return { success: true, data: parseInt(data) };
-      }
-    });
+    const pipeline = new Pipeline<string>()
+      .add<number>(new InvalidNumberFilter());
 
     const result = await pipeline.process('not a number');
     expect(result.success).toBe(false);
@@ -102,18 +104,22 @@ describe('[Pipeline]: Data Processing', () => {
   it('Should stop processing on first filter failure', async () => {
     let secondFilterCalled = false;
 
-    pipeline
-      .add({
-        async process(_data: string) {
-          return { success: false, error: new Error('First filter error') };
-        }
-      })
-      .add({
-        async process(data: number) {
-          secondFilterCalled = true;
-          return { success: true, data: data };
-        }
-      });
+    class FailingFilter implements IPipelineFilter<string, number> {
+      async process(_data: string): Promise<PipelineResult<number>> {
+        return { success: false, error: new Error('First filter error') };
+      }
+    }
+
+    class SecondFilter implements IPipelineFilter<number, string> {
+      async process(data: number): Promise<PipelineResult<string>> {
+        secondFilterCalled = true;
+        return { success: true, data: data.toString() };
+      }
+    }
+
+    const pipeline = new Pipeline<string>()
+      .add<number>(new FailingFilter())
+      .add<string>(new SecondFilter());
 
     const result = await pipeline.process('123');
     expect(result.success).toBe(false);
@@ -122,11 +128,8 @@ describe('[Pipeline]: Data Processing', () => {
   });
 
   it('Should handle thrown exceptions in filters', async () => {
-    pipeline.add({
-      async process(_data: string) {
-        throw new Error('Unexpected error');
-      }
-    });
+    const pipeline = new Pipeline<string>()
+      .add<number>(new ErrorThrowingFilter());
 
     const result = await pipeline.process('123');
     expect(result.success).toBe(false);
@@ -134,11 +137,8 @@ describe('[Pipeline]: Data Processing', () => {
   });
 
   it('Should handle null/undefined data as valid but empty result', async () => {
-    pipeline.add({
-      async process(_data: string) {
-        return { success: true, data: undefined };
-      }
-    });
+    const pipeline = new Pipeline<string>()
+      .add<number>(new NullReturningFilter());
 
     const result = await pipeline.process('test');
     expect(result.success).toBe(true);
@@ -146,22 +146,46 @@ describe('[Pipeline]: Data Processing', () => {
   });
 });
 
+describe('[Pipeline]: Runtime Validations', () => {
+  it('Should throw error when adding null filter', () => {
+    const pipeline = new Pipeline<string>();
+    expect(() => pipeline.add(null as any)).toThrow('Filter cannot be null or undefined');
+  });
+
+  it('Should throw error when adding undefined filter', () => {
+    const pipeline = new Pipeline<string>();
+    expect(() => pipeline.add(undefined as any)).toThrow('Filter cannot be null or undefined');
+  });
+
+  it('Should throw error when adding object without process method', () => {
+    const pipeline = new Pipeline<string>();
+    const invalidFilter = {} as any;
+    expect(() => pipeline.add(invalidFilter)).toThrow('Filter must implement process method');
+  });
+
+  it('Should throw error when adding object with non-function process property', () => {
+    const pipeline = new Pipeline<string>();
+    const invalidFilter = { process: 'not a function' } as any;
+    expect(() => pipeline.add(invalidFilter)).toThrow('Filter must implement process method');
+  });
+});
+
 describe('[Pipeline]: Complex Transformations', () => {
   it('Should handle complex type transformations', async () => {
     interface User { name: string; age: number; }
     
-    const pipeline = new Pipeline<string, User>();
-    
-    pipeline
-      .add({
-        async process(data: string) {
-          const [name, age] = data.split(',');
-          if (!name || !age) {
-            return { success: false, error: new Error('Invalid input format') };
-          }
-          return { success: true, data: { name, age: parseInt(age) } };
+    class StringToUserFilter implements IPipelineFilter<string, User> {
+      async process(data: string): Promise<PipelineResult<User>> {
+        const [name, age] = data.split(',');
+        if (!name || !age) {
+          return { success: false, error: new Error('Invalid input format') };
         }
-      });
+        return { success: true, data: { name, age: parseInt(age) } };
+      }
+    }
+
+    const pipeline = new Pipeline<string>()
+      .add<User>(new StringToUserFilter());
 
     const result = await pipeline.process('John Doe,30');
     expect(result.success).toBe(true);
@@ -169,15 +193,16 @@ describe('[Pipeline]: Complex Transformations', () => {
   });
 
   it('Should handle async operations in filters', async () => {
-    const pipeline = new Pipeline<number, string>();
-    
-    pipeline.add({
-      async process(data: number) {
+    class AsyncFilter implements IPipelineFilter<number, string> {
+      async process(data: number): Promise<PipelineResult<string>> {
         // Simulate async operation
         await new Promise(resolve => setTimeout(resolve, 100));
         return { success: true, data: data.toString() };
       }
-    });
+    }
+
+    const pipeline = new Pipeline<number>()
+      .add<string>(new AsyncFilter());
 
     const startTime = Date.now();
     const result = await pipeline.process(123);
@@ -188,3 +213,5 @@ describe('[Pipeline]: Complex Transformations', () => {
     expect(endTime - startTime).toBeGreaterThanOrEqual(100);
   });
 });
+
+

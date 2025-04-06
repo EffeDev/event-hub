@@ -2,7 +2,7 @@
  * Represents the result of a pipeline stage execution
  * @template T The type of data being processed
  */
-type PipelineResult<T> = {
+export type PipelineResult<T> = {
     /** Indicates if the pipeline stage executed successfully */
     success: boolean;
     /** The processed data if successful */
@@ -37,11 +37,8 @@ export interface IPipelineFilter<TInput, TOutput> {
  * through each stage, and if any stage fails, the pipeline stops processing and returns an error.
  * 
  * @example
- * // Create a pipeline that processes strings to numbers
- * const pipeline = new Pipeline<string, number>();
- * 
- * // Add a filter that converts string to number
- * pipeline.add({
+ * // Create a proper filter class
+ * class StringToNumberFilter implements IPipelineFilter<string, number> {
  *   async process(data: string): Promise<PipelineResult<number>> {
  *     const num = Number(data);
  *     if (isNaN(num)) {
@@ -49,15 +46,29 @@ export interface IPipelineFilter<TInput, TOutput> {
  *     }
  *     return { success: true, data: num };
  *   }
- * });
+ * }
+ * 
+ * class NumberToHexFilter implements IPipelineFilter<number, string> {
+ *   async process(data: number): Promise<PipelineResult<string>> {
+ *     return { success: true, data: data.toString(16) };
+ *   }
+ * }
+ * 
+ * // Create and chain pipelines.
+ * // When creating a new Pipeline with no filters you need to construct with only the Input data type.
+ * // The actual final Pipeline Type will change as you add filters that transform the data to a new type.
+ * // Its tricky at first but it makes sense when building out more complex filter Pipelines.
+ * const pipeline = new Pipeline<string>()
+ *   .add(new StringToNumberFilter())
+ *   .add(new NumberToHexFilter());
  * 
  * // Process data through the pipeline
  * const result = await pipeline.process("123");
  * if (result.success) {
- *   console.log(result.data); // 123
+ *   console.log(result.data); // "7b"
  * }
  */
-export class Pipeline<TInput, TOutput> {
+export class Pipeline<TInput, TOutput = TInput> {
     /** Array of pipeline stages that will process the data */
     private filters: IPipelineFilter<any, any>[] = [];
 
@@ -69,30 +80,50 @@ export class Pipeline<TInput, TOutput> {
     get size() {
         return this.filters.length;
     }
-
+    
     /**
      * Adds a new processing stage to the pipeline
      * 
      * @template TIntermediate The intermediate output type of this stage
      * @param filter The filter to add to the pipeline
-     * @returns A new pipeline type that reflects the transformation
+     * @returns A new pipeline with the added filter
      * 
      * @example
-     * const pipeline = new Pipeline<string, number>()
-     *   .add({
-     *     async process(data: string): Promise<PipelineResult<number>> {
-     *       return { success: true, data: parseInt(data) };
-     *     }
-     *   })
-     *   .add({
-     *     async process(data: number): Promise<PipelineResult<string>> {
-     *       return { success: true, data: data.toString(16) };
-     *     }
-     *   });
+     * // Create filter classes
+     * class StringToNumberFilter implements IPipelineFilter<string, number> {
+     *   async process(data: string): Promise<PipelineResult<number>> {
+     *     return { success: true, data: parseInt(data) };
+     *   }
+     * }
+     * 
+     * class NumberToHexFilter implements IPipelineFilter<number, string> {
+     *   async process(data: number): Promise<PipelineResult<string>> {
+     *     return { success: true, data: data.toString(16) };
+     *   }
+     * }
+     * 
+     * // Chain filters together
+     * const pipeline = new Pipeline<string>()
+     *   .add(new StringToNumberFilter())
+     *   .add(new NumberToHexFilter());
      */
-    add<TIntermediate>(filter: IPipelineFilter<TInput, TIntermediate>): Pipeline<TInput, TIntermediate> {
-        this.filters.push(filter);
-        return this as unknown as Pipeline<TInput, TIntermediate>;
+    add<TIntermediate>(filter: IPipelineFilter<TOutput, TIntermediate>): Pipeline<TInput, TIntermediate> {
+        // Runtime validations
+        if (!filter) {
+            throw new Error('Filter cannot be null or undefined');
+        }
+        
+        if (typeof filter.process !== 'function') {
+            throw new Error('Filter must implement process method');
+        }
+
+        // Create a new pipeline with the new output type
+        const newPipeline = new Pipeline<TInput, TIntermediate>();
+        
+        // Copy all existing filters
+        newPipeline.filters = [...this.filters, filter];
+        
+        return newPipeline;
     }
 
     /**
@@ -107,11 +138,27 @@ export class Pipeline<TInput, TOutput> {
      * returns the error. If all stages succeed, the final transformed data is returned.
      * 
      * @example
-     * const pipeline = new Pipeline<string, number>();
-     * // ... add stages ...
+     * // Create proper filter classes
+     * class StringToNumberFilter implements IPipelineFilter<string, number> {
+     *   async process(data: string): Promise<PipelineResult<number>> {
+     *     return { success: true, data: parseInt(data) };
+     *   }
+     * }
+     * 
+     * class NumberDoubleFilter implements IPipelineFilter<number, number> {
+     *   async process(data: number): Promise<PipelineResult<number>> {
+     *     return { success: true, data: data * 2 };
+     *   }
+     * }
+     * 
+     * // Build the pipeline with proper filter classes
+     * const pipeline = new Pipeline<string>()
+     *   .add(new StringToNumberFilter())
+     *   .add(new NumberDoubleFilter());
+     * 
      * const result = await pipeline.process("123");
      * if (result.success) {
-     *   console.log("Processed value:", result.data);
+     *   console.log("Processed value:", result.data); // 246
      * } else {
      *   console.error("Processing failed:", result.error);
      * }
