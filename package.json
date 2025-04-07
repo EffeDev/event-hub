@@ -1,5 +1,5 @@
 {
-  "name": "@serverless-dna/effe",
+  "name": "@effedev/effe",
   "version": "0.1.0",
   "description": "Events For Front End (Effe).  Framework agnostic EventHub extending your backend event bus to your frontend.",
   "main": "dist/index.cjs.js",
