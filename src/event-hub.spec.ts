@@ -1,5 +1,5 @@
-import { EventHub } from './index';
-import { WildCardChannel } from './types';
+import { EventHub } from './event-hub';
+import {WildCardChannel } from './types';
 
 describe('[EventHub]: subscribe', () => {
   let eventHub: EventHub;
@@ -307,7 +307,7 @@ describe('[EventHub]: Async Callbacks', () => {
     let errorThrown = false;
     
     // Subscribe with both successful and failing callbacks
-    prodEventHub.subscribe<string>('test', async (data: string) => {
+    prodEventHub.subscribe<string>('test', async (_data: string) => {
       throw new Error('Async callback error');
     });
     
@@ -318,7 +318,7 @@ describe('[EventHub]: Async Callbacks', () => {
     try {
       // Should not throw in production mode
       await prodEventHub.publish<string>('test', 'error test');
-    } catch (error) {
+    } catch {
       errorThrown = true;
     }
 
@@ -336,7 +336,7 @@ describe('[EventHub]: Async Callbacks', () => {
     const errorMessage = 'Async callback error in debug mode';
     
     // Subscribe with both successful and failing callbacks
-    debugEventHub.subscribe<string>('test', async (data: string) => {
+    debugEventHub.subscribe<string>('test', async (_data: string) => {
       throw new Error(errorMessage);
     });
     
@@ -366,11 +366,11 @@ describe('[EventHub]: Async Callbacks', () => {
     const eventHub = new EventHub();
     const channelName = 'test';
     
-    eventHub.subscribe<string>(channelName, async (data: string) => {
+    eventHub.subscribe<string>(channelName, async (_data: string) => {
       throw new Error('Async error 1');
     });
     
-    eventHub.subscribe<string>(channelName, async (data: string) => {
+    eventHub.subscribe<string>(channelName, async (_data: string) => {
       throw new Error('Async error 2');
     });
 
@@ -388,7 +388,7 @@ describe('[EventHub]: Async Callbacks', () => {
     let successData1 = '';
     let successData2 = '';
     
-    eventHub.subscribe<string>('test', async (data: string) => {
+    eventHub.subscribe<string>('test', async (_data: string) => {
       throw new Error('Async error');
     });
     
