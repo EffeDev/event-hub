@@ -1,5 +1,4 @@
 import { Pipeline } from './pipeline';
-import { isDefined } from './types';
 
 /**
  * Interface for transport implementations that handle remote event source connections
@@ -178,7 +177,7 @@ export abstract class SourceTransport<TInput, TOutput = TInput> extends BaseTran
         if (this.pipeline) {
             const result = await this.pipeline.process(data);
             if (result.success) {
-                if (isDefined(result.data)) {
+                if (result.data !== null && result.data !== undefined) {
                     await this._onDataHandler!(result.data);
                 }
             } else {
@@ -263,7 +262,7 @@ export abstract class SinkTransport<TInput, TOutput = TInput> extends BaseTransp
         if (this.pipeline) {
             const result = await this.pipeline.process(data);
             if (result.success) {
-                if (isDefined(result.data)) {
+                if(result.data !== null && result.data !== undefined) {
                     await this.sendMessage(result.data);
                 }
             } else {

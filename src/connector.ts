@@ -90,7 +90,7 @@ export abstract class SourceConnector<TInput, TOutput> {
      * @throws {Error} If disconnection fails
      */
     async disconnect(): Promise<void> {
-        await this.transport.disconnect
+        await this.transport.disconnect();
     }
 }
 
