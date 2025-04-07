@@ -15,7 +15,7 @@ import { EventCallback, SubscribeOptions, Subscription, WildCardChannel } from "
  * - Dynamic channel creation: Channels are created on-demand when publishing or subscribing.
  * - Type-safe events: Each channel can handle a specific event type.
  * - Last event retrieval: Ability to get the most recent event from any channel.
- * - Subscription management: Easy subscription and unsubscription mechanism.
+ * - Subscription management: Easy subscription and unsubscribe mechanism.
  *
  * @property {Record<string, Channel<any>>} _channels - Private property that stores all the channels managed by the event hub.
  * Each key is a channel name, and the value is the corresponding Channel instance.

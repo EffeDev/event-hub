@@ -1,4 +1,4 @@
-import { Channel } from "./index";
+import { Channel } from "./channel";
 
 describe('[Channel] Basic Operations', () => {
   let channel: Channel<boolean>;

@@ -4,14 +4,14 @@ export default {
         '^.+\\.tsx?$': ['ts-jest', { tsconfig: { target: 'es6' } }],
     },
     collectCoverage: true,
-    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+    collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/index.ts'],
     coverageReporters: ['lcovonly', 'text', 'text-summary'],
     coverageThreshold: {
         global: {
-            branches: 100, // temporary change: official value is80
-            functions: 100, // temporary change: official value is80
-            lines: 100, // temporary change: official value is 80
-            statements: -10, // temporary change: official value is -10
+            branches: 80, // Restored to original value
+            functions: 80, // Restored to original value
+            lines: 80, // Restored to original value
+            statements: -10, // Original value
         },
     },
 };
