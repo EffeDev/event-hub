@@ -1,6 +1,6 @@
+import { SinkConnector,SourceConnector } from './connector';
 import { EventHub } from './event-hub';
-import { SourceConnector, SinkConnector } from './connector';
-import { SourceTransport, SinkTransport } from './transport';
+import { SinkTransport,SourceTransport } from './transport';
 import { Subscription } from './types';
 
 // Mock implementations for testing

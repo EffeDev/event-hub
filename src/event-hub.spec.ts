@@ -1,8 +1,5 @@
 import { EventHub } from './event-hub';
-import { BaseTransport, ITransport, SourceTransport, SinkTransport } from './transport';
-import { Channel } from './channel';
-import { Pipeline, PipelineResult, IPipelineFilter } from './pipeline';
-import { WildCardChannel, EventCallback, Subscription } from './types';
+import {WildCardChannel } from './types';
 
 describe('[EventHub]: subscribe', () => {
   let eventHub: EventHub;
