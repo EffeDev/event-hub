@@ -5,6 +5,13 @@
 *.log*
 .amazon_q
 
+# TypeScript incremental compilation cache
+*.tsbuildinfo
+
+
+# Rollup cache
+.rollup.cache
+
 # dependencies
 **/.yarn/*
 !**/.yarn/patches
