@@ -1,20 +1,12 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "es5",
-    "module": "esnext",
-    "strict": true,
-    "declaration": true,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "baseUrl": "./src",
-    "outDir": "./dist",
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
+    "baseUrl": ".",
     "paths": {
-      "*": ["*"]
+      "@effedev/*": ["packages/*/src"]
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "src/**/*.spec.ts"]
+  "references": [
+    { "path": "./packages/event-hub" }
+  ]
 }
