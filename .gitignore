@@ -6,7 +6,6 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
-.rollup.cache
 
 # Logs
 logs
