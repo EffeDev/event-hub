@@ -1,54 +1,38 @@
-name: Pipeline
+name: Stage Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - "*"
+    paths-ignore:
+      - '*.md'
   pull_request:
-    branches: [ main ]
+    branches:
+      - "*"
+    paths-ignore:
+      - '*.md'
 
 jobs:
-  build:
+  StageBuild:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [22.x]
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-    
-    - name: Setup PNPM
-      uses: pnpm/action-setup@v3
-      with:
-        version: 8
-        run_install: false
-    
-    - name: Get pnpm store directory
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-    
-    - uses: actions/cache@v4
-      name: Setup pnpm cache
-      with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-    
-    - name: Install dependencies
-      run: pnpm install
-    
-    - name: Lint
-      run: pnpm lint
-    
-    - name: Build
-      run: pnpm build
-    
-    - name: Test
-      run: pnpm test
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+        
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Lint
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test:ci
