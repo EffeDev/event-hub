@@ -1,0 +1,44 @@
+{
+  "name": "event-hub",
+  "version": "0.1.0",
+  "description": "Events For Front End (Effe).  Framework agnostic EventHub extending your backend event bus to your frontend.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.umd.min.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "prebuild": "rimraf dist/* && npm run lint",
+    "build": "rollup -c",
+    "test": "jest",
+    "lint": "eslint",
+    "test:ci": "jest --ci",
+    "lint:fix": "eslint --fix",
+    "postversion": "npm run build",
+    "release": "semantic-release"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverless-dna/effe.git"
+  },
+  "keywords": [
+    "EDA",
+    "event",
+    "bus"
+  ],
+  "author": "Michael Walmsley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/serverless-dna/effe/issues"
+  },
+  "homepage": "https://github.com/serverless-dna/effe#readme",
+  "packageManager": "pnpm@10.8.1",
+  "dependencies": {
+    "@gomomento/sdk-web": "^1.101.2",
+    "isomorphic-ws": "^5.0.0",
+    "ws": "^8.18.0"
+  }
+}
