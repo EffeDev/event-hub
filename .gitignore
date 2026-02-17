@@ -16,6 +16,13 @@
 **/.pnp
 **/.pnp.*
 
+# claude code
+.claude/
+
+# speckit
+.specify/
+specs/
+
 # project
 .idea
 dist
