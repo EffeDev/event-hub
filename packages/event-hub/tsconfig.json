@@ -1,19 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "module": "esnext",
     "strict": true,
     "declaration": true,
-    "moduleResolution": "node",
+    "declarationDir": "./dist/types",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "baseUrl": "./src",
-    "outDir": "./dist",
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
-    "paths": {
-      "*": ["*"]
-    }
+    "outDir": "./dist/esm",
+    "lib": ["es2022", "dom", "dom.iterable"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/**/*.spec.ts"]

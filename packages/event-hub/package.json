@@ -1,15 +1,26 @@
 {
-  "name": "event-hub",
+  "name": "@effedev/event-hub",
   "version": "0.1.0",
   "description": "Events For Front End (Effe).  Framework agnostic EventHub extending your backend event bus to your frontend.",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "browser": "dist/index.umd.min.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
   "scripts": {
     "prebuild": "rimraf dist/* && npm run lint",
-    "build": "rollup -c",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
     "test": "jest",
     "lint": "eslint",
     "test:ci": "jest --ci",
