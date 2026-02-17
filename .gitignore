@@ -18,6 +18,7 @@
 
 # claude code
 .claude/
+CLAUDE.md
 
 # speckit
 .specify/
